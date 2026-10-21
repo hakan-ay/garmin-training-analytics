@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Reference implementation of NightSignal (Alavi et al. 2022), pinned for reproducibility
+      STANFORD_SHA: 99b3bd7937e72d42c2670c7a259d9f9f8728dc06
+      STANFORD_RAW: https://raw.githubusercontent.com/StanfordBioinformatics/wearable-infection
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
+      - run: uv sync
+
+      - name: Synthetic data is reproducible
+        run: |
+          uv run python src/make_synthetic.py
+          git diff --exit-code demo/
+
+      - name: Pipeline builds on synthetic data
+        run: uv run python src/build_db.py --demo
+
+      - name: Demo scenarios behave as designed
+        run: |
+          uv run python - <<'PY'
+          import duckdb
+          con = duckdb.connect("demo/demo.duckdb", read_only=True)
+          risk = dict(con.execute("SELECT strftime(date, '%Y-%m-%d'), illness_risk FROM daily_risk").fetchall())
+          onset = con.execute("SELECT strftime(onset_date, '%Y-%m-%d') FROM illness_log").fetchone()[0]
+          first_alert = min(d for d, r in risk.items() if r == "alert")
+          assert first_alert < onset, f"illness alert {first_alert} should come before onset {onset}"
+          assert all(risk[d] != "alert" for d in ("2024-03-11", "2024-03-12")), "training block must not alert"
+          assert all(risk[d] != "alert" for d in ("2024-06-21", "2024-06-22")), "logged travel must not alert"
+          print("first alert", first_alert, "onset", onset)
+          PY
+
+      - name: NightSignal matches Stanford's original code
+        run: |
+          mkdir -p /tmp/stanford && cd /tmp/stanford
+          curl -sfL -o nightsignal.py "$STANFORD_RAW/$STANFORD_SHA/nightsignal.py"
+          curl -sfL -o P682517-Fitbit-rhr.csv "$STANFORD_RAW/$STANFORD_SHA/P682517-Fitbit-rhr.csv"
+          # the original uses a matplotlib style name removed in newer versions; it only affects the plot
+          sed -i 's/seaborn-dark-palette/seaborn-v0_8-dark-palette/' nightsignal.py
+          uv run --project "$GITHUB_WORKSPACE" python -I nightsignal.py --device=Fitbit --restinghr=P682517-Fitbit-rhr.csv
+          cd "$GITHUB_WORKSPACE"
+          uv run python tests/test_nightsignal.py /tmp/stanford/P682517-Fitbit-rhr.csv /tmp/stanford/NS-signals.json

@@ -1,0 +1,30 @@
+# Raw Garmin data: contains GPS coordinates, activity names (locations) and account info. NEVER commit.
+data/raw/
+*.fit
+*.gpx
+*.tcx
+
+# Local database
+data/*.duckdb
+data/*.duckdb.wal
+demo/*.duckdb
+demo/*.duckdb.wal
+
+# Processed CSVs contain no locations or names, but they do contain health metrics.
+data/processed/
+
+# Private labels: personal health and context logs
+data/illness_log.csv
+data/context_log.csv
+
+# Python
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.env
+
+# macOS
+.DS_Store
+
+# Local tool settings (contain absolute paths)
+.claude/

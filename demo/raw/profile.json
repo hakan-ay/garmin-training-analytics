@@ -1,0 +1,1 @@
+{"sex": "MALE", "hr_zones": [{"trainingMethod": "HR_MAX", "sport": "DEFAULT", "maxHeartRateUsed": 190, "restingHeartRateUsed": 52}, {"trainingMethod": "HR_MAX", "sport": "CYCLING", "maxHeartRateUsed": 190, "restingHeartRateUsed": 52}, {"trainingMethod": "HR_MAX", "sport": "RUNNING", "maxHeartRateUsed": 190, "restingHeartRateUsed": 52}]}

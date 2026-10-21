@@ -1,0 +1,13 @@
+[project]
+name = "garmin-training-analytics"
+version = "0.1.0"
+description = "Illness early-warning and training-load analytics on Garmin data, built on published methods (DuckDB, SQL, Streamlit)"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=2.0.0",
+    "garminconnect>=0.3.19",
+    "matplotlib>=3.11.2",
+    "pandas>=3.0.6",
+    "plotly>=7.1.0",
+    "streamlit>=1.66.1",
+]
