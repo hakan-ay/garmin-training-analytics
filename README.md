@@ -71,6 +71,8 @@ To check that the method is not tuned to one person, the **unchanged** `sql/07_n
 | Red alert (+4 bpm, 2 nights) | 20 (69 %) | 11 (38 %) | 2 |
 | Yellow or red (+3 bpm, 2 nights) | 21 (72 %) | 13 (45 %) | 3 |
 
+![External validation](reports/figures/f7_external_validation.png)
+
 - **False alarms:** 72 participants without reported illness, 4,926 nights: **0.93** red-alert episodes per 30 nights (0.89 after the first 28 nights, so it is not a short-baseline artefact). On the author's own data the raw rate is lower and most alerts are explained by the training and context logs, which this cohort does not have. The cohort also uses the fixed 00:00-06:59 window, the weakest input in the model comparison above.
 - **Other illnesses:** only 5 have enough data around onset (2 detected), too few to report a rate.
 - **Not directly comparable** with the paper's own detection rates, which come from different algorithms and time windows. Devices are mixed, monitoring lasted only a few months, and "no reported illness" may still include unreported ones.
@@ -139,7 +141,7 @@ Garmin Connect ──► data/raw/*.json ──► stg_* ──► sql/00-09 ─
 | `sql/analysis/` | Analysis queries (Q1-Q5) and SQL exercises |
 | `src/` | Fetch, build, synthetic data, figures |
 | `demo/` | Synthetic athlete in Garmin's raw format |
-| `tests/` | NightSignal reference test |
+| `tests/` | NightSignal reference test, demo-scenario test, public-export privacy test (all run in CI) |
 
 ## Setup
 
@@ -157,7 +159,7 @@ uv run python src/make_figures.py
 External validation (downloads described in the script header; ~380 MB, kept in the gitignored `data/external/`):
 
 ```bash
-uv run --with openpyxl python src/validate_stanford.py
+uv run python src/validate_stanford.py
 ```
 
 Optional private label files (gitignored), see the `*.example.csv` templates: `data/illness_log.csv` (first day of symptoms, recovery day) and `data/context_log.csv` (travel, heat, alcohol, altitude, races…).

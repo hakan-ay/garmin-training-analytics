@@ -30,6 +30,8 @@ cycler==0.12.1
     # via matplotlib
 duckdb==2.0.0
     # via garmin-training-analytics
+et-xmlfile==2.0.0
+    # via openpyxl
 fonttools==4.67.0
     # via matplotlib
 garminconnect==0.3.19
@@ -67,6 +69,8 @@ numpy==2.5.4
     #   pandas
     #   pydeck
     #   streamlit
+openpyxl==3.1.5
+    # via garmin-training-analytics
 packaging==26.3
     # via
     #   altair

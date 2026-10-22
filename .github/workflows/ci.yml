@@ -25,18 +25,7 @@ jobs:
         run: uv run python src/build_db.py --demo
 
       - name: Demo scenarios behave as designed
-        run: |
-          uv run python - <<'PY'
-          import duckdb
-          con = duckdb.connect("demo/demo.duckdb", read_only=True)
-          risk = dict(con.execute("SELECT strftime(date, '%Y-%m-%d'), illness_risk FROM daily_risk").fetchall())
-          onset = con.execute("SELECT strftime(onset_date, '%Y-%m-%d') FROM illness_log").fetchone()[0]
-          first_alert = min(d for d, r in risk.items() if r == "alert")
-          assert first_alert < onset, f"illness alert {first_alert} should come before onset {onset}"
-          assert all(risk[d] != "alert" for d in ("2024-03-11", "2024-03-12")), "training block must not alert"
-          assert all(risk[d] != "alert" for d in ("2024-06-21", "2024-06-22")), "logged travel must not alert"
-          print("first alert", first_alert, "onset", onset)
-          PY
+        run: uv run python tests/test_demo_scenarios.py
 
       - name: NightSignal matches Stanford's original code
         run: |
@@ -50,17 +39,4 @@ jobs:
           uv run python tests/test_nightsignal.py /tmp/stanford/P682517-Fitbit-rhr.csv /tmp/stanford/NS-signals.json
 
       - name: Public author export contains only allowlisted columns
-        run: |
-          uv run python - <<'PY'
-          import csv, sys
-          sys.path.insert(0, "src")
-          from export_public import ALLOWED_COLUMNS
-          with open("public/author_daily_risk.csv") as f:
-              reader = csv.DictReader(f)
-              cols = reader.fieldnames
-              rows = list(reader)
-          extra = set(cols) - set(ALLOWED_COLUMNS) - {"context_notes"}
-          assert not extra, f"columns outside the allowlist: {extra}"
-          assert all(not r["context_notes"] for r in rows), "free-text notes must be empty"
-          print(len(cols), "columns,", len(rows), "rows: OK")
-          PY
+        run: uv run python tests/test_public_export.py

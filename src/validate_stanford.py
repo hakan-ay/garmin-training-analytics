@@ -13,7 +13,7 @@ the event-based reporting of Alavi et al. 2022:
   * per illness: alert in the 7 days before symptom onset (early) or within ±7 days (detected), and the lead time
   * per healthy participant: alert episodes per 30 nights of data (false alarms; there is no confounder log here)
 
-    uv run --with openpyxl python src/validate_stanford.py
+    uv run python src/validate_stanford.py
 """
 
 import argparse

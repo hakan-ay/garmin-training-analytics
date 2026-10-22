@@ -158,13 +158,42 @@ def f6_load_recovery(con) -> None:
     save(fig, "f6_load_vs_next_day_recovery")
 
 
+def f7_external_validation(con) -> None:
+    """Aggregates from src/validate_stanford.py; skipped when the external validation has not been run."""
+    path = ROOT / "reports" / "external_validation" / "stanford_event_study.csv"
+    if not path.exists():
+        print("skip f7: run src/validate_stanford.py first")
+        return
+    ev = pd.read_csv(path)
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.2), sharex=True)
+    ax = axes[0]
+    ax.fill_between(ev.day, ev.q1_rise_bpm, ev.q3_rise_bpm, color=MUTED, alpha=0.2, lw=0)
+    ax.plot(ev.day, ev.median_rise_bpm, color=SLOTS[0], lw=2, marker="o", ms=4, mec="#fcfcfb", mew=1)
+    ax.axhline(0, color=AXIS, lw=1)
+    ax.set_title("Nightly heart rate above baseline", pad=18)
+    ax.set_ylabel("bpm (median, IQR)")
+    ax = axes[1]
+    ax.bar(ev.day, ev.share_red_alert * 100, color=CRITICAL, width=0.75)
+    ax.set_title("Share of cases in red alert", pad=18)
+    ax.set_ylabel("%")
+    ax.grid(axis="x", visible=False)
+    for ax in axes:
+        ax.axvline(0, color=INK2, lw=1)
+        ax.text(0.5, 1.01, "symptoms start", transform=ax.get_xaxis_transform(), ha="left", fontsize=8, color=INK2)
+        ax.set_xlabel("days from symptom onset")
+    fig.suptitle("External cohort: COVID-19 cases aligned on symptom onset (Stanford, Mishra et al. 2020)",
+                 x=0.01, ha="left", fontsize=9, color=INK2, y=1.04)
+    save(fig, "f7_external_validation")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--demo", action="store_true")
     args = parser.parse_args()
     db = ROOT / ("demo/demo.duckdb" if args.demo else "data/garmin.duckdb")
     con = duckdb.connect(str(db), read_only=True)
-    for f in (f1_event_study, f2_model_comparison, f3_sleep_window, f4_seasonal_mix, f6_load_recovery):
+    for f in (f1_event_study, f2_model_comparison, f3_sleep_window, f4_seasonal_mix, f6_load_recovery,
+              f7_external_validation):
         f(con)
     con.close()
 
