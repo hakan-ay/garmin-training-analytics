@@ -3,7 +3,9 @@
 [![CI](https://github.com/hakan-ay/garmin-training-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/hakan-ay/garmin-training-analytics/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/live%20demo-Streamlit-FF4B4B)](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app)
 
-**[Open the live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app)** (synthetic data)
+**[Open the live dashboard](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app)**: the author's data (dates shifted), demo scenarios and the external validation
+
+[![Dashboard: a red illness alert three days before symptoms, with the evidence behind it](reports/figures/dashboard.png)](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=author&date=2024-09-21)
 
 **Can a smartwatch tell you that you are getting sick before you feel it, without confusing illness with a hard training week?**
 
