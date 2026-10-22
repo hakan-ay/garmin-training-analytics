@@ -1,5 +1,8 @@
 -- Daily wellness table: seconds are converted to hours; nights without the watch stay NULL (never averaged in as 0).
 -- date = the morning of waking up, so the HRV/RHR on a "date" row measures the previous night.
+-- resting_hr is kept only for nights the watch recorded sleep: on days it was not worn overnight Garmin derives
+-- "resting HR" from daytime wear (values of 65-85 bpm instead of ~50), which is not a valid input for overnight
+-- methods such as NightSignal. The untouched value stays in resting_hr_raw.
 
 CREATE OR REPLACE TABLE daily_wellness AS
 SELECT
@@ -21,7 +24,8 @@ SELECT
     CAST(hrv_baseline_low_ms AS DOUBLE)       AS hrv_baseline_low_ms,
     CAST(hrv_baseline_high_ms AS DOUBLE)      AS hrv_baseline_high_ms,
     hrv_status,
-    CAST(resting_hr AS INTEGER)               AS resting_hr,
+    CASE WHEN NULLIF(sleep_s, 0) IS NOT NULL THEN CAST(resting_hr AS INTEGER) END AS resting_hr,
+    CAST(resting_hr AS INTEGER)               AS resting_hr_raw,
     CAST(body_battery_change AS INTEGER)      AS body_battery_change
 FROM stg_wellness
 ORDER BY date;

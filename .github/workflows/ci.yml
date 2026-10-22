@@ -48,3 +48,19 @@ jobs:
           uv run --project "$GITHUB_WORKSPACE" python -I nightsignal.py --device=Fitbit --restinghr=P682517-Fitbit-rhr.csv
           cd "$GITHUB_WORKSPACE"
           uv run python tests/test_nightsignal.py /tmp/stanford/P682517-Fitbit-rhr.csv /tmp/stanford/NS-signals.json
+
+      - name: Public author export contains only allowlisted columns
+        run: |
+          uv run python - <<'PY'
+          import csv, sys
+          sys.path.insert(0, "src")
+          from export_public import ALLOWED_COLUMNS
+          with open("public/author_daily_risk.csv") as f:
+              reader = csv.DictReader(f)
+              cols = reader.fieldnames
+              rows = list(reader)
+          extra = set(cols) - set(ALLOWED_COLUMNS) - {"context_notes"}
+          assert not extra, f"columns outside the allowlist: {extra}"
+          assert all(not r["context_notes"] for r in rows), "free-text notes must be empty"
+          print(len(cols), "columns,", len(rows), "rows: OK")
+          PY

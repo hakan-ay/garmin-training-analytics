@@ -9,16 +9,16 @@
 
 An end-to-end analytics project on wearable data: a SQL-first DuckDB pipeline, early-warning models built **only on published, peer-reviewed methods**, a validation against labelled events, and a dashboard that explains *why* a day is flagged.
 
-> **Data:** the author's own Garmin data, about 21 months (~180 activities, ~650 nights): an n-of-1 self-tracking study. Calendar dates, locations and raw data are not published. Figures use relative days or month of year, and the public demo runs on **synthetic data**.
+> **Data:** the author's own Garmin data, about 21 months (~180 activities, ~650 nights): an n-of-1 self-tracking study. Locations and raw data are not published. Figures use relative days or month of year; the live dashboard shows the author's processed daily data with **every date shifted by an undisclosed number of weeks**, next to a **synthetic** demo athlete.
 
 ## Key findings
 
 | | Finding | Why it matters |
 |---|---|---|
-| 1 | Resting heart rate was **4-6 bpm above baseline for 6 nights before symptoms**; the alert fired **3 days before onset** | Early warning is possible from data a watch already collects |
+| 1 | Resting heart rate was **4-6 bpm above baseline for the 4 nights before symptoms**; the alert fired **3 days before onset** | Early warning is possible from data a watch already collects |
 | 2 | Applying the published NightSignal rules to the daily resting heart rate gives **~0.2 unexplained false alarms per 30 days**; the original fixed-window input gives **1.6** | How you feed a published algorithm matters as much as the algorithm |
 | 3 | For a late sleeper only **67 % (median)** of the fixed 00:00-06:59 window is spent asleep | Clock-based algorithms fail for students and shift workers |
-| 4 | After a hard training day, next-morning resting HR is **+3.3 bpm** and HRV **−16.5 %** | Training produces the same signature as illness, so it must be modelled as a confounder |
+| 4 | After a hard training day, next-morning resting HR is **+2.9 bpm** and HRV **−16.5 %** | Training produces the same signature as illness, so it must be modelled as a confounder |
 | 5 | The sport mix shifts strongly by season (cycling in spring/autumn, strength and hiking in summer, skiing in winter) | Load models must work across very different sports, hence heart-rate based TRIMP |
 
 ![Event study](reports/figures/f1_illness_event_study.png)
@@ -66,7 +66,7 @@ Every signal is based on a published method, and the thresholds are the ones def
 ## Risk dashboard
 
 ```bash
-uv run streamlit run app/dashboard.py        # your own data, or the synthetic demo when none exists
+uv run streamlit run app/dashboard.py        # author's data, demo scenarios, and your own data if you built it
 ```
 
 One page for an athlete or coach: the **illness** and **overload / injury** risk for a selected day, **why** it is at that level, and **which publication** each piece of evidence is based on.
@@ -78,11 +78,17 @@ One page for an athlete or coach: the **illness** and **overload / injury** risk
 - **No hindsight bias:** by default only data up to the selected day is shown, i.e. what the model knew on that day.
 - `?date=YYYY-MM-DD` links to a specific day.
 
-The synthetic demo contains three scenarios the models must separate; open each one directly in the [live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app):
+The page has a **Data** switch:
 
-- [**Illness**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-08-17): red alert 2 days before the logged onset
-- [**Hard training block**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-03-12): heart rate up, but the illness card stays on *watch* and the overload card is *high*
-- [**Logged trip**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-06-21): the same heart-rate signature, explained by the context log, so *watch*, not alert
+- **Author's data:** the author's own processed daily data, exported by `src/export_public.py` with an allowlist of columns, every date shifted by a fixed undisclosed whole number of weeks (weekdays and seasons preserved) and free-text notes removed.
+- **Demo scenarios:** a synthetic athlete (`src/make_synthetic.py`).
+- **My data:** only on your own machine, with real dates.
+
+The synthetic athlete contains three scenarios the models must separate; open each one directly in the [live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app):
+
+- [**Illness**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=demo&date=2024-08-17): red alert 2 days before the logged onset
+- [**Hard training block**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=demo&date=2024-03-12): heart rate up, but the illness card stays on *watch* and the overload card is *high*
+- [**Logged trip**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=demo&date=2024-06-21): the same heart-rate signature, explained by the context log, so *watch*, not alert
 
 CI asserts all three on every push.
 
@@ -100,6 +106,8 @@ Rules live in the `sql/00_sport_rules.sql` table, so changing a threshold is a d
 | 6 | Sport-specific minimum distance (cycling 2 km, running 1 km; none for swimming/mountaineering/strength) | GPS distance is unreliable in open water and on vertical terrain |
 | 7 | Sport-specific speed range (cycling 8-55 km/h, running 2:30-10:00 min/km) | Watch not stopped, GPS spikes |
 | 8 | Sport not in the rules table → `no_rule` | New sport types must not silently enter the analysis |
+
+**Wellness data quality.** Resting heart rate is used only on nights the watch recorded sleep. On days it was not worn overnight, Garmin derives "resting HR" from daytime wear (65-85 bpm instead of ~50), which is not a valid input for overnight methods; these readings caused the largest false alarms before the rule was added.
 
 Speed uses `moving_duration` for cycling/running (excludes breaks) and total duration otherwise, because Garmin's moving time is unreliable for mountaineering. Raw sport types are merged into 8 `sport_group`s with a separate `is_indoor` flag.
 
@@ -135,7 +143,7 @@ Optional private label files (gitignored), see the `*.example.csv` templates: `d
 
 ## Privacy
 
-Activity names, GPS, `locationName` and account fields are never loaded into staging. Raw data, the database, processed CSVs and the label files are gitignored, and published figures contain no calendar dates.
+Activity names, GPS, `locationName` and account fields are never loaded into staging. Raw data, the database, processed CSVs and the label files are gitignored, and published figures contain no calendar dates. The only published per-day data is `public/author_daily_risk.csv`: an allowlist of model outputs (no sleep times, no activity names, no GPS), dates shifted by a private whole number of weeks that is stored outside the repository, and context notes removed. CI fails if that file ever contains a column outside the allowlist.
 
 ## Tech stack
 

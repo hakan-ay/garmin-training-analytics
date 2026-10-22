@@ -1,0 +1,8 @@
+model,detected,lead_days,false_episodes,explained_by_confounder,unexplained_per_30d
+HRV 7d < SWC (Plews),True,3,11,8,0.15
+Ours: RHR ≥3 × 3 nights,True,2,6,3,0.15
+NightSignal garmin_rhr / expanding / red,True,3,10,6,0.19
+NightSignal garmin_rhr / rolling28 / red,True,3,11,5,0.29
+NightSignal garmin_rhr / rolling28 / yellow+red,True,4,17,10,0.34
+NightSignal garmin_rhr / expanding / yellow+red,True,3,19,11,0.39
+Ours: 2+ signals z ≥ 1.5,True,4,24,10,0.68
