@@ -1,6 +1,9 @@
 # Garmin Training Analytics
 
 [![CI](https://github.com/hakan-ay/garmin-training-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/hakan-ay/garmin-training-analytics/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/live%20demo-Streamlit-FF4B4B)](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app)
+
+**[Open the live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app)** (synthetic data)
 
 **Can a smartwatch tell you that you are getting sick before you feel it, without confusing illness with a hard training week?**
 
@@ -75,7 +78,13 @@ One page for an athlete or coach: the **illness** and **overload / injury** risk
 - **No hindsight bias:** by default only data up to the selected day is shown, i.e. what the model knew on that day.
 - `?date=YYYY-MM-DD` links to a specific day.
 
-The synthetic demo contains three scenarios the models must separate: an illness (alert 2 days before onset), a hard training block (watch + high overload risk) and a logged trip (watch, not alert). CI asserts all three.
+The synthetic demo contains three scenarios the models must separate; open each one directly in the [live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app):
+
+- [**Illness**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-08-17): red alert 2 days before the logged onset
+- [**Hard training block**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-03-12): heart rate up, but the illness card stays on *watch* and the overload card is *high*
+- [**Logged trip**](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?date=2024-06-21): the same heart-rate signature, explained by the context log, so *watch*, not alert
+
+CI asserts all three on every push.
 
 ## Activity data cleaning
 
