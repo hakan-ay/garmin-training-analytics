@@ -11,6 +11,7 @@ When no real database exists, the synthetic demo database is built automatically
 
 import os
 import sys
+import threading
 from datetime import timedelta
 from pathlib import Path
 
@@ -31,6 +32,21 @@ COMPARISON_SQL = ROOT / "sql" / "analysis" / "a5_model_comparison.sql"
 st.set_page_config(page_title="Risk Dashboard", page_icon="❤️", layout="wide")
 
 
+@st.cache_resource(show_spinner="Building the demo database (first visit only)…")
+def build_demo_db() -> Path:
+    """Builds the synthetic demo database once per server process.
+
+    Several visitors (and the host's health check) can hit a fresh deployment at the same time, and DuckDB allows
+    only one writer per file. So the database is built under a unique temporary name and moved into place only when
+    complete: DEMO_DB either does not exist or is a finished database, never a half-written one.
+    """
+    if not DEMO_DB.exists():
+        tmp = DEMO_DB.with_name(f"demo.{os.getpid()}.{threading.get_ident()}.building.duckdb")
+        build_db.build(raw_dir=ROOT / "demo" / "raw", labels_dir=ROOT / "demo", db_path=tmp, export_dir=None)
+        os.replace(tmp, DEMO_DB)
+    return DEMO_DB
+
+
 def resolve_db() -> tuple[Path, bool]:
     """Returns (database path, is_demo). Builds the synthetic demo database on first use."""
     if os.getenv("GARMIN_DB"):
@@ -38,9 +54,7 @@ def resolve_db() -> tuple[Path, bool]:
         return db, db.resolve() == DEMO_DB.resolve()
     if REAL_DB.exists():
         return REAL_DB, False
-    if not DEMO_DB.exists():
-        build_db.build(raw_dir=ROOT / "demo" / "raw", labels_dir=ROOT / "demo", db_path=DEMO_DB, export_dir=None)
-    return DEMO_DB, True
+    return build_demo_db(), True
 
 
 DB, IS_DEMO = resolve_db()
