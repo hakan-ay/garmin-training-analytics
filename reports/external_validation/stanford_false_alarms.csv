@@ -1,0 +1,5 @@
+baseline_kind,alert_rule,n_people,n_nights,n_episodes,false_alarms_per_30_nights
+expanding,red,72,4926,152,0.93
+expanding,yellow+red,72,4926,203,1.24
+rolling28,red,72,4926,150,0.91
+rolling28,yellow+red,72,4926,217,1.32

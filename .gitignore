@@ -31,3 +31,6 @@ __pycache__/
 
 # Private date shift for the public export (never publish)
 data/public_shift.json
+
+# External research datasets (large, third-party; keep out of git)
+data/external/

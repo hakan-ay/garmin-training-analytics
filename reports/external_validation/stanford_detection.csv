@@ -1,0 +1,9 @@
+kind,baseline_kind,alert_rule,illnesses,detected_±7d,early_(before_onset),median_lead_days
+COVID-19,expanding,red,29,20,11,2.0
+COVID-19,expanding,yellow+red,29,21,13,3.0
+COVID-19,rolling28,red,29,20,12,2.5
+COVID-19,rolling28,yellow+red,29,22,13,3.0
+other illness,expanding,red,5,2,1,-1.0
+other illness,expanding,yellow+red,5,3,2,1.0
+other illness,rolling28,red,5,2,1,-1.0
+other illness,rolling28,yellow+red,5,3,2,1.0
