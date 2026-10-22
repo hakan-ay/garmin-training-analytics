@@ -32,6 +32,14 @@ COMPARISON_SQL = ROOT / "sql" / "analysis" / "a5_model_comparison.sql"
 st.set_page_config(page_title="Risk Dashboard", page_icon="❤️", layout="wide")
 
 
+def demo_db_is_complete() -> bool:
+    try:
+        with duckdb.connect(str(DEMO_DB), read_only=True) as con:
+            return con.execute("SELECT COUNT(*) FROM daily_risk").fetchone()[0] > 0
+    except duckdb.Error:
+        return False
+
+
 @st.cache_resource(show_spinner="Building the demo database (first visit only)…")
 def build_demo_db() -> Path:
     """Builds the synthetic demo database once per server process.
@@ -40,6 +48,8 @@ def build_demo_db() -> Path:
     only one writer per file. So the database is built under a unique temporary name and moved into place only when
     complete: DEMO_DB either does not exist or is a finished database, never a half-written one.
     """
+    if DEMO_DB.exists() and not demo_db_is_complete():
+        DEMO_DB.unlink()  # left behind by an older build that crashed half-way
     if not DEMO_DB.exists():
         tmp = DEMO_DB.with_name(f"demo.{os.getpid()}.{threading.get_ident()}.building.duckdb")
         build_db.build(raw_dir=ROOT / "demo" / "raw", labels_dir=ROOT / "demo", db_path=tmp, export_dir=None)
