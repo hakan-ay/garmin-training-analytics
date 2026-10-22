@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "external" / "stanford_covid" / "COVID-19-Wearables"
 TABLES = ROOT / "data" / "external" / "stanford_covid_supp" / "tables.xlsx"
 OUT = ROOT / "reports" / "external_validation"
+MIN_CASES = 5   # smallest group size published per day (privacy)
 
 
 def load_labels(tables: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -131,6 +132,27 @@ def evaluate(con, episodes: pd.DataFrame, healthy: pd.DataFrame) -> tuple[pd.Dat
     return per_episode, false_alarms
 
 
+def event_study(con, episodes: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate only: per day relative to COVID-19 onset, the median rise of nightly heart rate over the NightSignal
+    baseline, its interquartile range and the share of cases in red alert. Days with fewer than MIN_CASES cases are
+    dropped so that no single participant's values can be read off the published file."""
+    con.register("covid", episodes[episodes.kind == "COVID-19"])
+    return con.sql(f"""
+        SELECT CAST(n.date - c.onset::DATE AS INTEGER)                       AS day,
+               COUNT(*)                                                        AS cases,
+               MEDIAN(n.rise)                                                  AS median_rise_bpm,
+               QUANTILE_CONT(n.rise, 0.25)                                     AS q1_rise_bpm,
+               QUANTILE_CONT(n.rise, 0.75)                                     AS q3_rise_bpm,
+               ROUND(AVG((n.state = 2)::INT), 3)                               AS share_red_alert
+        FROM covid c
+        JOIN nightsignal n ON n.series = c.participant AND n.baseline_kind = 'expanding' AND NOT n.is_imputed
+        WHERE n.date BETWEEN c.onset::DATE - 21 AND c.onset::DATE + 14
+        GROUP BY 1
+        HAVING COUNT(*) >= {MIN_CASES}
+        ORDER BY 1
+    """).df()
+
+
 def summarise(per_episode: pd.DataFrame) -> pd.DataFrame:
     g = per_episode.groupby(["kind", "baseline_kind", "alert_rule"])
     return pd.DataFrame({
@@ -154,6 +176,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     summary.to_csv(OUT / "stanford_detection.csv", index=False)
     false_alarms.to_csv(OUT / "stanford_false_alarms.csv", index=False)
+    event_study(con, episodes).to_csv(OUT / "stanford_event_study.csv", index=False)
     print(f"participants with nightly data: {con.execute('SELECT COUNT(DISTINCT series) FROM nightsignal').fetchone()[0]}")
     print(f"labelled illnesses: {len(episodes)}, evaluable (≥14 nights around onset): "
           f"{per_episode[['participant', 'onset']].drop_duplicates().shape[0]}")

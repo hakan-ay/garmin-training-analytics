@@ -64,7 +64,7 @@ Every signal is based on a published method, and the thresholds are the ones def
 
 ### External validation: Stanford COVID-19 wearables cohort
 
-To check that the method is not tuned to one person, the **unchanged** `sql/07_nightsignal.sql` runs on the public cohort of [Mishra et al., *Nature Biomedical Engineering* 4:1208 (2020)](https://www.nature.com/articles/s41551-020-00640-6): smartwatch heart rate (5-second samples) and steps for 119 participants, with labels from the paper's supplementary tables (32 COVID-19 cases, 15 other illnesses, 73 participants with no reported illness). The data is not redistributed here; `src/validate_stanford.py` documents where to download it and reproduces the numbers below (results in `reports/external_validation/`).
+To check that the method is not tuned to one person, the **unchanged** `sql/07_nightsignal.sql` runs on the public cohort of [Mishra et al., *Nature Biomedical Engineering* 4:1208 (2020)](https://www.nature.com/articles/s41551-020-00640-6): smartwatch heart rate (5-second samples) and steps for 119 participants, with labels from the paper's supplementary tables (32 COVID-19 cases, 15 other illnesses, 73 participants with no reported illness). The data is not redistributed here; `src/validate_stanford.py` documents where to download it and reproduces the numbers below (results in `reports/external_validation/`). The dashboard's [**External validation** page](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=stanford) shows the aggregates: the median heart-rate rise around symptom onset and the share of cases in red alert per day (days with fewer than 5 cases are suppressed, and no participant-level data is published).
 
 | COVID-19, 29 cases with ≥14 nights of data around onset | Detected within ±7 days | Before symptom onset | Median days early |
 |---|---|---|---|
@@ -97,6 +97,7 @@ The page has a **Data** switch:
 - **Author's data:** the author's own processed daily data, exported by `src/export_public.py` with an allowlist of columns, every date shifted by a fixed undisclosed whole number of weeks (weekdays and seasons preserved) and free-text notes removed.
 - **Demo scenarios:** a synthetic athlete (`src/make_synthetic.py`).
 - **My data:** only on your own machine, with real dates.
+- **External validation:** aggregate results on the Stanford cohort ([open](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app/?dataset=stanford)).
 
 The synthetic athlete contains three scenarios the models must separate; open each one directly in the [live demo](https://garmin-training-analytics-i8srz9xojdxxbc8uedyref.streamlit.app):
 

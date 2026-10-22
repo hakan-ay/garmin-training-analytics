@@ -32,6 +32,7 @@ REAL_DB = ROOT / "data" / "garmin.duckdb"
 DEMO_DB = ROOT / "demo" / "demo.duckdb"
 AUTHOR_RISK = ROOT / "public" / "author_daily_risk.csv"
 AUTHOR_COMPARISON = ROOT / "public" / "author_model_comparison.csv"
+VALIDATION = ROOT / "reports" / "external_validation"   # aggregates from src/validate_stanford.py
 COMPARISON_SQL = ROOT / "sql" / "analysis" / "a5_model_comparison.sql"
 
 st.set_page_config(page_title="Risk Dashboard", page_icon="❤️", layout="wide")
@@ -70,6 +71,8 @@ def available_datasets() -> dict[str, str]:
     if AUTHOR_RISK.exists():
         datasets["author"] = "Author's data"
     datasets["demo"] = "Demo scenarios (synthetic)"
+    if (VALIDATION / "stanford_event_study.csv").exists():
+        datasets["stanford"] = "External validation"
     return datasets
 
 
@@ -344,6 +347,91 @@ def line_with_threshold(win, col, title, hover, lines: list[tuple], band=None) -
     return base_layout(fig, title)
 
 
+def stat_tile(col, label: str, value: str, note: str) -> None:
+    with col.container(border=True):
+        st.markdown(f"<div style='color:{C['ink2']};font-size:0.85rem'>{label}</div>"
+                    f"<div style='font-size:1.9rem;font-weight:600;color:{C['ink']};line-height:1.2'>{value}</div>"
+                    f"<div style='color:{C['muted']};font-size:0.8rem'>{note}</div>", unsafe_allow_html=True)
+
+
+def render_external_validation() -> None:
+    """Aggregates only: no participant-level data from the external cohort is published."""
+    detection = pd.read_csv(VALIDATION / "stanford_detection.csv")
+    false_alarms = pd.read_csv(VALIDATION / "stanford_false_alarms.csv")
+    events = pd.read_csv(VALIDATION / "stanford_event_study.csv")
+    red = detection[(detection.kind == "COVID-19") & (detection.baseline_kind == "expanding")
+                    & (detection.alert_rule == "red")].iloc[0]
+    fa = false_alarms[(false_alarms.baseline_kind == "expanding") & (false_alarms.alert_rule == "red")].iloc[0]
+    n = int(red.illnesses)
+
+    st.info("The **unchanged** NightSignal SQL from this project, run on the public Stanford COVID-19 wearables cohort "
+            "([Mishra et al., Nature Biomedical Engineering 2020](https://www.nature.com/articles/s41551-020-00640-6)). "
+            "Only aggregates are shown; no participant-level data is published. Dates in the cohort were shifted by its "
+            "authors, so everything is aligned on each person's symptom onset.")
+    t = st.columns(4)
+    stat_tile(t[0], "COVID-19 cases evaluated", f"{n}", "≥14 nights of data around onset")
+    stat_tile(t[1], "Red alert within ±7 days", f"{red['detected_±7d'] / n:.0%}", f"{int(red['detected_±7d'])} of {n} cases")
+    stat_tile(t[2], "Before symptoms", f"{red['early_(before_onset)'] / n:.0%}",
+              f"{int(red['early_(before_onset)'])} of {n}, median {red.median_lead_days:.0f} days early")
+    stat_tile(t[3], "False alarms", f"{fa.false_alarms_per_30_nights:.2f}",
+              f"red episodes per 30 nights, {int(fa.n_people)} people without illness")
+
+    g1, g2 = st.columns(2)
+    with g1:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=events.day, y=events.q3_rise_bpm, line=dict(width=0), hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=events.day, y=events.q1_rise_bpm, line=dict(width=0), fill="tonexty",
+                                 fillcolor=C["band"], hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=events.day, y=events.median_rise_bpm, mode="lines+markers",
+                                 line=dict(color=C["series"], width=2),
+                                 marker=dict(size=6, color=C["series"], line=dict(width=2, color=C["surface"])),
+                                 customdata=events.cases,
+                                 hovertemplate="day %{x}: median %{y:+.1f} bpm (%{customdata} cases)<extra></extra>"))
+        fig.add_hline(y=0, line_width=1, line_color=C["axis"])
+        fig.add_vline(x=0, line_width=1, line_color=C["ink2"], annotation_text="symptoms start",
+                      annotation_position="top right", annotation_font=dict(size=10, color=C["ink2"]))
+        fig.update_xaxes(title_text="days from symptom onset", title_font=dict(size=11, color=C["muted"]))
+        st.plotly_chart(base_layout(fig, "Nightly heart rate above baseline (median, interquartile band)", 280),
+                        use_container_width=True)
+    with g2:
+        fig = go.Figure(go.Bar(x=events.day, y=events.share_red_alert * 100, marker=dict(color=C["critical"], cornerradius=4),
+                               customdata=events.cases,
+                               hovertemplate="day %{x}: %{y:.0f}% of %{customdata} cases in red alert<extra></extra>"))
+        fig.add_vline(x=0, line_width=1, line_color=C["ink2"])
+        fig.update_xaxes(title_text="days from symptom onset", title_font=dict(size=11, color=C["muted"]))
+        fig.update_yaxes(ticksuffix="%")
+        st.plotly_chart(base_layout(fig, "Share of cases in red alert", 280), use_container_width=True)
+
+    st.subheader("Why the author's data has fewer false alarms")
+    rows = [("External cohort: no training or context log, fixed 00:00-06:59 window", fa.false_alarms_per_30_nights)]
+    if AUTHOR_COMPARISON.exists():
+        own = pd.read_csv(AUTHOR_COMPARISON)
+        own = own[own.model == "NightSignal garmin_rhr / expanding / red"]
+        if not own.empty:
+            o = own.iloc[0]
+            explained_share = o.explained_by_confounder / o.false_episodes if o.false_episodes else 0
+            raw = o.unexplained_per_30d / (1 - explained_share) if explained_share < 1 else None
+            if raw is not None:
+                rows.append(("Author's data: all alerts, before using the logs", raw))
+            rows.append(("Author's data: alerts not explained by training or context logs", o.unexplained_per_30d))
+    labels, values = zip(*rows)
+    fig = go.Figure(go.Bar(y=list(labels), x=list(values), orientation="h", width=0.5,
+                           marker=dict(color=[C["muted"]] * (len(rows) - 1) + [C["series"]], cornerradius=4),
+                           text=[f"{v:.2f}" for v in values], textposition="outside", textfont_color=C["ink2"],
+                           hovertemplate="%{y}: %{x:.2f} per 30 nights<extra></extra>"))
+    fig.update_yaxes(autorange="reversed")
+    fig.update_xaxes(range=[0, max(values) * 1.3], title_text="false-alarm episodes per 30 nights",
+                     title_font=dict(size=11, color=C["muted"]))
+    st.plotly_chart(base_layout(fig, "Red-alert false alarms per 30 healthy nights", 230), use_container_width=True)
+    st.caption("Not directly comparable with the paper's own detection rates, which use different algorithms and time "
+               "windows. Devices are mixed, monitoring lasted a few months, and participants without reported illness may "
+               "still have had unreported ones. Other illnesses: only 5 had enough data around onset, too few to report.")
+    with st.expander("Table view"):
+        st.dataframe(detection, hide_index=True, use_container_width=True)
+        st.dataframe(false_alarms, hide_index=True, use_container_width=True)
+        st.dataframe(events, hide_index=True, use_container_width=True)
+
+
 # ---------- page ----------
 st.title("Illness and overload risk")
 st.caption("Every signal is compared with your own history and is based on a published method. "
@@ -355,6 +443,9 @@ dataset = st.segmented_control(
     default=requested if requested in DATASETS else next(iter(DATASETS)))
 dataset = dataset or next(iter(DATASETS))
 st.query_params["dataset"] = dataset
+if dataset == "stanford":
+    render_external_validation()
+    st.stop()
 risk, comparison = load(dataset)
 if dataset == "author":
     st.info("**The author's own Garmin data** (an n-of-1 self-tracking study, one logged illness). For privacy every "
