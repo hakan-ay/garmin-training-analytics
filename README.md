@@ -77,7 +77,7 @@ To check that the method is not tuned to one person, the **unchanged** `sql/07_n
 - **Other illnesses:** only 5 have enough data around onset (2 detected), too few to report a rate.
 - **Not directly comparable** with the paper's own detection rates, which come from different algorithms and time windows. Devices are mixed, monitoring lasted only a few months, and "no reported illness" may still include unreported ones.
 
-**Limitations.** Only one illness is logged in the author's data, so its detection and lead time are case studies; the external cohort adds 29 COVID-19 cases. The author's false-alarm rate rests on ~600 healthy days. Garmin keeps minute-level heart rate for a limited time only. ACWR's ability to predict injury is debated (Impellizzeri 2020).
+**Limitations.** Only one illness is logged in the author's data, so its detection and lead time are case studies; the external cohort adds 29 COVID-19 cases. The author's false-alarm rate rests on ~600 healthy days. A [data-collection kit](docs/data_collection/README.md) (information sheet, consent form, Garmin export steps, weekly illness and context log) prepares a multi-athlete extension. Garmin keeps minute-level heart rate for a limited time only. ACWR's ability to predict injury is debated (Impellizzeri 2020).
 
 ## Risk dashboard
 
